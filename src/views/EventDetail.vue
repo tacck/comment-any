@@ -10,7 +10,7 @@
       <v-row
         v-for="comment in sortedComments"
         :key="comment.id"
-        :id="comment.id"
+        :id="'_' + comment.id"
       >
         <CommentItem
           :ref="comment.id"
@@ -30,6 +30,14 @@
 </template>
 
 <script>
+import { API, graphqlOperation } from 'aws-amplify'
+import { listComments } from '@/graphql/queries'
+import {
+  createComment,
+  updateComment,
+  deleteComment,
+} from '@/graphql/mutations'
+
 import moment from 'moment'
 
 import PageTitle from '@/components/PageTitle'
@@ -76,40 +84,16 @@ export default {
       inputComment: '',
       linkUrl: '',
       updatedIds: [],
-      comments: [
-        {
-          id: 'abcde1',
-          name: 'User 1',
-          comment: 'One Like comment.',
-          updatedAt: '2020-06-23 15:20:00',
-          likes: 1,
-        },
-        {
-          id: 'abcde2',
-          name: 'User 1',
-          comment: 'Some comment.',
-          updatedAt: '2020-06-23 15:20:00',
-          likes: 10,
-        },
-        {
-          id: 'fghij1',
-          name: 'User 2',
-          comment: 'Another comment.',
-          updatedAt: '2020-06-23 15:30:00',
-          likes: 20,
-        },
-        {
-          id: 'fghij2',
-          name: 'User 2',
-          comment: 'One more comment.',
-          updatedAt: '2020-06-23 15:15:00',
-          likes: 10,
-        },
-      ],
+      comments: [],
     }
   },
-  created: function() {
+  created: async function() {
     this.linkUrl = location.href
+
+    const items = await API.graphql(graphqlOperation(listComments)).catch(err =>
+      console.error('listComments', err),
+    )
+    this.comments = items.data.listComments.items
   },
   updated: function() {
     for (const id of this.updatedIds) {
@@ -118,37 +102,48 @@ export default {
     this.updatedIds = []
   },
   methods: {
-    addComment: function(inputComment) {
+    addComment: async function(inputComment) {
       if (!inputComment || inputComment.length <= 0) {
         return
       }
 
-      const id =
-        'comment-' +
-        Math.floor(Math.random() * 1000) +
-        '-' +
-        Math.floor(Math.random() * 1000)
       const comment = {
-        id: id,
+        eventId: this.event.id,
         name: this.loginUserName,
         comment: inputComment,
-        updatedAt: moment().format('YYYY-MM-DD HH:mm:ss'),
         likes: 0,
       }
 
-      this.comments.push(comment)
+      const item = await API.graphql(
+        graphqlOperation(createComment, { input: comment }),
+      ).catch(err => console.error('createComment', err))
+      const savedComment = item.data.createComment
 
-      this.scrollToId(id)
-      this.pushUpdatedIds(id)
+      this.comments.push(savedComment)
+
+      this.scrollToId(savedComment.id)
+      this.pushUpdatedIds(savedComment.id)
     },
-    addLike: function(elementId) {
+    addLike: async function(elementId) {
       const comment = this.getComment(elementId)
       if (comment === null) {
         return
       }
 
       const beforeIndex = this.getCommentIndex(elementId)
-      comment.likes += 1
+
+      const input = {
+        id: comment.id,
+        likes: comment.likes + 1,
+      }
+
+      const item = await API.graphql(
+        graphqlOperation(updateComment, { input: input }),
+      ).catch(err => console.error('updateComment', err))
+      const savedComment = item.data.updateComment
+
+      comment.likes = savedComment.likes
+      comment.updatedAt = savedComment.updatedAt
       const afterIndex = this.getCommentIndex(elementId)
 
       if (beforeIndex > afterIndex) {
@@ -156,17 +151,27 @@ export default {
         this.pushUpdatedIds(comment.id)
       }
     },
-    deleteComment: function(elementId) {
+    deleteComment: async function(elementId) {
       const index = this.comments.findIndex(item => item.id === elementId)
       if (index < 0) {
         return
       }
 
+      const comment = this.getComment(elementId)
+      const input = {
+        id: comment.id,
+      }
+
+      await API.graphql(
+        graphqlOperation(deleteComment, { input: input }),
+      ).catch(err => console.error('deleteComment', err))
+
       this.comments.splice(index, 1)
     },
     scrollToId: function(elementId) {
       setTimeout(() => {
-        this.$vuetify.goTo(`#${elementId}`)
+        // ID attribute must not start with a number.
+        this.$vuetify.goTo(`#_${elementId}`)
       }, 100)
     },
     getComment: function(elementId) {

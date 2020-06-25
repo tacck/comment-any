@@ -1,0 +1,8 @@
+type Comment @model {
+  id: ID!
+  eventId: ID!
+  comment: String!
+  likes: Int!
+  name: String
+  updatedAt: AWSDateTime
+}
