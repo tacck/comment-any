@@ -105,6 +105,7 @@ export default {
         name: this.newEventName,
         active: true,
         createdAt: moment().format('YYYY-MM-DD HH:mm:ss'),
+        owner: 'me',
       })
 
       this.newEventNameDialog = false
