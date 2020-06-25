@@ -1,62 +1,36 @@
 <template>
   <v-app>
     <v-app-bar app color="primary" dark>
-      <div class="d-flex align-center">
-        <v-img
-          alt="Vuetify Logo"
-          class="shrink mr-2"
-          contain
-          src="https://cdn.vuetifyjs.com/images/logos/vuetify-logo-dark.png"
-          transition="scale-transition"
-          width="40"
-        />
-
-        <v-img
-          alt="Vuetify Name"
-          class="shrink mt-1 hidden-sm-and-down"
-          contain
-          min-width="100"
-          src="https://cdn.vuetifyjs.com/images/logos/vuetify-name-dark.png"
-          width="100"
-        />
-      </div>
+      <router-link to="/">
+        <div class="text-h4 font-weight-light white--text">
+          Comment Any
+        </div>
+      </router-link>
 
       <v-spacer></v-spacer>
 
-      <v-btn to="/" text>
-        <span class="mr-2">Home</span>
+      <v-btn v-if="!logedin" to="/login" text small class="pr-0">
+        <span class="mr-2"><v-icon>mdi-login</v-icon></span>
       </v-btn>
-
-      <v-btn to="/about" text>
-        <span class="mr-2">About</span>
-      </v-btn>
-
-      <v-spacer></v-spacer>
-
-      <v-btn
-        href="https://github.com/vuetifyjs/vuetify/releases/latest"
-        target="_blank"
-        text
-      >
-        <span class="mr-2">Latest Release</span>
-        <v-icon>mdi-open-in-new</v-icon>
+      <v-btn v-else to="/logout" text small class="pr-0">
+        <span class="mr-2"><v-icon>mdi-logout</v-icon></span>
       </v-btn>
     </v-app-bar>
 
-    <v-content>
+    <v-main>
       <router-view />
-    </v-content>
+    </v-main>
   </v-app>
 </template>
 
 <script>
 export default {
   name: 'App',
-
   components: {},
-
-  data: () => ({
-    //
-  }),
+  data: function() {
+    return {
+      logedin: false,
+    }
+  },
 }
 </script>
