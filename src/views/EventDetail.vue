@@ -16,6 +16,7 @@
           :ref="comment.id"
           :comment="comment"
           :isEventOwner="isEventOwner(event.owner)"
+          :isActiveEvent="event.active"
           @addLike="addLike"
           @deleteComment="deleteComment"
         ></CommentItem>
@@ -31,7 +32,7 @@
 
 <script>
 import { API, graphqlOperation } from 'aws-amplify'
-import { listComments } from '@/graphql/queries'
+import { getEvent, listCommentByEventId } from '@/graphql/queries'
 import {
   createComment,
   updateComment,
@@ -90,10 +91,15 @@ export default {
   created: async function() {
     this.linkUrl = location.href
 
-    const items = await API.graphql(graphqlOperation(listComments)).catch(err =>
-      console.error('listComments', err),
-    )
-    this.comments = items.data.listComments.items
+    const item = await API.graphql(
+      graphqlOperation(getEvent, { id: this.eventId }),
+    ).catch(err => console.error('getEvent', err))
+    this.event = item.data.getEvent
+
+    const items = await API.graphql(
+      graphqlOperation(listCommentByEventId, { eventId: this.eventId }),
+    ).catch(err => console.error('listCommentByEventId', err))
+    this.comments = items.data.listCommentByEventId.items
   },
   updated: function() {
     for (const id of this.updatedIds) {

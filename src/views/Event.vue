@@ -43,6 +43,10 @@
 </template>
 
 <script>
+import { API, graphqlOperation } from 'aws-amplify'
+import { listEvents } from '@/graphql/queries'
+import { createEvent, updateEvent } from '@/graphql/mutations'
+
 import moment from 'moment'
 
 import PageTitle from '@/components/PageTitle'
@@ -67,46 +71,33 @@ export default {
       newEventName: '',
       newEventNameDialog: false,
       userName: 'me',
-      events: [
-        {
-          id: '12345',
-          name: 'サンプルイベント',
-          active: true,
-          createdAt: '2020-06-23 15:20:00',
-          owner: 'me',
-        },
-        {
-          id: '67890',
-          name: '終了イベント',
-          active: false,
-          createdAt: '2020-06-21 15:00:00',
-          owner: 'me',
-        },
-        {
-          id: 'abcde',
-          name: 'Not owner',
-          active: true,
-          createdAt: '2020-06-22 14:00:00',
-          owner: 'someone',
-        },
-      ],
+      events: [],
     }
   },
+  created: async function() {
+    const items = await API.graphql(graphqlOperation(listEvents)).catch(err =>
+      console.error('listEvents', err),
+    )
+    this.events = items.data.listEvents.items
+  },
   methods: {
-    addEvent: function() {
-      const id =
-        'event-' +
-        Math.floor(Math.random() * 1000) +
-        '-' +
-        Math.floor(Math.random() * 1000)
+    addEvent: async function() {
+      if (!this.newEventName || this.newEventName.length <= 0) {
+        return
+      }
 
-      this.events.push({
-        id: id,
+      const input = {
         name: this.newEventName,
         active: true,
-        createdAt: moment().format('YYYY-MM-DD HH:mm:ss'),
         owner: 'me',
-      })
+      }
+
+      const item = await API.graphql(
+        graphqlOperation(createEvent, { input: input }),
+      ).catch(err => console.error('createEvent', err))
+      const savedEvent = item.data.createEvent
+
+      this.events.push(savedEvent)
 
       this.newEventNameDialog = false
       this.newEventName = ''
@@ -118,12 +109,18 @@ export default {
     isEventOwner: function(eventOwner) {
       return eventOwner === this.userName
     },
-    activeSwitch: function(event) {
+    activeSwitch: async function(event) {
       const index = this.events.findIndex(item => item.id === event.id)
       if (index < 0) {
         return
       }
-      this.events[index].active = event.active
+
+      const item = await API.graphql(
+        graphqlOperation(updateEvent, { input: event }),
+      ).catch(err => console.error('updateEvent', err))
+      const savedEvent = item.data.updateEvent
+
+      this.events.splice(index, 1, savedEvent)
     },
   },
 }

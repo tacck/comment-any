@@ -1,4 +1,18 @@
-type Comment @model {
+type Event
+  @model
+{
+  id: ID!
+  name: String
+  active: Boolean!
+  comments: [Comment] @connection(keyName: "listCommentByEventId", fields: ["id"])
+  createdAt: AWSDateTime
+  owner: String
+}
+
+type Comment
+  @model
+  @key (name: "listCommentByEventId", fields: ["eventId"], queryField: "listCommentByEventId")
+{
   id: ID!
   eventId: ID!
   comment: String!
