@@ -74,13 +74,7 @@ export default {
   },
   data: function() {
     return {
-      event: {
-        id: '12345',
-        name: 'サンプルイベント',
-        active: true,
-        createdAt: '2020-06-23 15:20:00',
-        owner: 'me',
-      },
+      event: {},
       userName: 'me',
       inputComment: '',
       linkUrl: '',
