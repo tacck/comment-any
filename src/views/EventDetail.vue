@@ -32,7 +32,7 @@
 
 <script>
 import { API, graphqlOperation } from 'aws-amplify'
-import { getEvent, listCommentByEventId } from '@/graphql/queries'
+import { getEvent } from '@/graphql/queries'
 import {
   createComment,
   updateComment,
@@ -95,11 +95,7 @@ export default {
       graphqlOperation(getEvent, { id: this.eventId }),
     ).catch(err => console.error('getEvent', err))
     this.event = item.data.getEvent
-
-    const items = await API.graphql(
-      graphqlOperation(listCommentByEventId, { eventId: this.eventId }),
-    ).catch(err => console.error('listCommentByEventId', err))
-    this.comments = items.data.listCommentByEventId.items
+    this.comments = this.event.comments.items
   },
   updated: function() {
     for (const id of this.updatedIds) {
