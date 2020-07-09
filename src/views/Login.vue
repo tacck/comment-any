@@ -1,23 +1,46 @@
 <template>
   <v-container>
-    <v-row>
-      <v-col cols="12"><PageTitle title="Login"></PageTitle></v-col>
-    </v-row>
-    <v-row>
-      <v-col cols="12">email</v-col>
-      <v-col cols="12">password</v-col>
+    <v-row justify="center">
+      <v-col cols="auto">
+        <amplify-authenticator>
+          <amplify-sign-up
+            slot="sign-up"
+            :form-fields.prop="formFields"
+          ></amplify-sign-up>
+          <div>
+            <amplify-sign-out></amplify-sign-out>
+          </div>
+        </amplify-authenticator>
+      </v-col>
     </v-row>
   </v-container>
 </template>
 
 <script>
-import PageTitle from '@/components/PageTitle'
-
 export default {
-  components: {
-    PageTitle,
+  data: function() {
+    return {
+      formFields: [
+        {
+          type: 'username',
+          label: 'Username',
+          placeholder: 'Username',
+          required: true,
+        },
+        {
+          type: 'password',
+          label: 'Password',
+          placeholder: 'Password',
+          required: true,
+        },
+        {
+          type: 'email',
+          label: 'Email Address',
+          placeholder: 'Email',
+          required: true,
+        },
+      ],
+    }
   },
 }
 </script>
-
-<style></style>
