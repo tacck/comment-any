@@ -2,7 +2,7 @@
   <v-container>
     <v-row>
       <v-col cols="12"
-        ><PageTitle :title="event.name"></PageTitle>
+        ><PageTitle v-if="event.name" :title="event.name"></PageTitle>
         <CopyableLinkIcon :linkUrl="linkUrl"></CopyableLinkIcon>
       </v-col>
     </v-row>
@@ -24,6 +24,7 @@
     </v-scroll-y-transition>
     <v-col class="my-10"></v-col>
     <CommentFooter
+      v-if="event.active"
       :isActiveEvent="event.active"
       @addComment="addComment"
     ></CommentFooter>
