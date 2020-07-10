@@ -12,7 +12,7 @@
       <v-btn v-if="!logedin" to="/login" text small class="pr-0">
         <span class="mr-2"><v-icon>mdi-login</v-icon></span>
       </v-btn>
-      <v-btn v-else to="/logout" text small class="pr-0">
+      <v-btn v-else to="/login" text small class="pr-0">
         <span class="mr-2"><v-icon>mdi-logout</v-icon></span>
       </v-btn>
     </v-app-bar>
@@ -26,11 +26,10 @@
 <script>
 export default {
   name: 'App',
-  components: {},
-  data: function() {
-    return {
-      logedin: false,
-    }
+  computed: {
+    logedin: function() {
+      return this.$store.state.user !== null
+    },
   },
 }
 </script>

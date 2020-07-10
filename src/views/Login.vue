@@ -17,6 +17,8 @@
 </template>
 
 <script>
+import { Auth, Hub } from 'aws-amplify'
+
 export default {
   data: function() {
     return {
@@ -41,6 +43,26 @@ export default {
         },
       ],
     }
+  },
+  created: function() {
+    Hub.listen('auth', this.changeState)
+  },
+  beforeDestroy: function() {
+    Hub.remove('auth', this.changeState)
+  },
+  methods: {
+    changeState: async function(data) {
+      const user = await Auth.currentUserInfo()
+      switch (data.payload.event) {
+        case 'signIn':
+          this.$store.commit('setUser', user)
+          this.$router.push('/')
+          break
+        case 'signOut':
+          this.$store.commit('setUser', null)
+          break
+      }
+    },
   },
 }
 </script>
