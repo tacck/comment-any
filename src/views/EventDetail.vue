@@ -24,7 +24,7 @@
     </v-scroll-y-transition>
     <v-col class="my-10"></v-col>
     <CommentFooter
-      v-if="event.active"
+      v-if="event.active !== void 0"
       :isActiveEvent="event.active"
       @addComment="addComment"
     ></CommentFooter>
@@ -76,7 +76,7 @@ export default {
   data: function() {
     return {
       event: {},
-      userName: 'me',
+      userName: '',
       inputComment: '',
       linkUrl: '',
       updatedIds: [],
@@ -85,6 +85,7 @@ export default {
   },
   created: async function() {
     this.linkUrl = location.href
+    this.userName = this.$store.state.user.username
 
     const item = await API.graphql(
       graphqlOperation(getEvent, { id: this.eventId }),
@@ -106,7 +107,7 @@ export default {
 
       const comment = {
         eventId: this.event.id,
-        name: this.loginUserName,
+        name: this.userName,
         comment: inputComment,
         likes: 0,
       }

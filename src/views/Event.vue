@@ -70,11 +70,13 @@ export default {
     return {
       newEventName: '',
       newEventNameDialog: false,
-      userName: 'me',
+      userName: '',
       events: [],
     }
   },
   created: async function() {
+    this.userName = this.$store.state.user.username
+
     const items = await API.graphql(graphqlOperation(listEvents)).catch(err =>
       console.error('listEvents', err),
     )
@@ -89,7 +91,6 @@ export default {
       const input = {
         name: this.newEventName,
         active: true,
-        owner: 'me',
       }
 
       const item = await API.graphql(
