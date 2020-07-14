@@ -7,9 +7,7 @@
             slot="sign-up"
             :form-fields.prop="formFields"
           ></amplify-sign-up>
-          <div>
-            <amplify-sign-out></amplify-sign-out>
-          </div>
+          <amplify-sign-out></amplify-sign-out>
         </amplify-authenticator>
       </v-col>
     </v-row>
