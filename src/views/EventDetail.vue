@@ -39,6 +39,11 @@ import {
   updateComment,
   deleteComment,
 } from '@/graphql/mutations'
+import {
+  onCreateComment,
+  onUpdateComment,
+  onDeleteComment,
+} from '@/graphql/subscriptions'
 
 import moment from 'moment'
 
@@ -81,6 +86,9 @@ export default {
       linkUrl: '',
       updatedIds: [],
       comments: [],
+      onCreateCommentSubscription: null,
+      onUpdateCommentSubscription: null,
+      onDeleteCommentSubscription: null,
     }
   },
   created: async function() {
@@ -92,12 +100,78 @@ export default {
     ).catch(err => console.error('getEvent', err))
     this.event = item.data.getEvent
     this.comments = this.event.comments.items
+
+    this.onCreateCommentSubscription = API.graphql(
+      graphqlOperation(onCreateComment),
+    ).subscribe({
+      next: data => {
+        const savedComment = data.value.data.onCreateComment
+        if (!this.isTargetEvent(savedComment.eventId)) {
+          return
+        }
+
+        const comment = this.getComment(savedComment.id)
+        if (comment === null) {
+          this.comments.push(savedComment)
+        }
+      },
+    })
+
+    this.onUpdateCommentSubscription = API.graphql(
+      graphqlOperation(onUpdateComment),
+    ).subscribe({
+      next: data => {
+        const updatedComment = data.value.data.onUpdateComment
+        if (!this.isTargetEvent(updatedComment.eventId)) {
+          return
+        }
+
+        const comment = this.getComment(updatedComment.id)
+        if (comment === null) {
+          return
+        }
+        comment.likes = updatedComment.likes
+        comment.updatedAt = updatedComment.updatedAt
+      },
+    })
+
+    this.onDeleteCommentSubscription = API.graphql(
+      graphqlOperation(onDeleteComment),
+    ).subscribe({
+      next: data => {
+        const deletedComment = data.value.data.onDeleteComment
+        if (!this.isTargetEvent(deletedComment.eventId)) {
+          return
+        }
+
+        const deletedCommentIndex = this.getCommentIndex(deletedComment.id)
+        if (deletedCommentIndex >= 0) {
+          this.comments.splice(deletedCommentIndex, 1)
+        }
+      },
+    })
   },
   updated: function() {
     for (const id of this.updatedIds) {
       this.$refs[id][0].changedComment()
     }
     this.updatedIds = []
+  },
+  beforeDestroy: function() {
+    if (this.onCreateCommentSubscription) {
+      this.onCreateCommentSubscription.unsubscribe()
+      this.onCreateCommentSubscription = null
+    }
+
+    if (this.onUpdateCommentSubscription) {
+      this.onUpdateCommentSubscription.unsubscribe()
+      this.onUpdateCommentSubscription = null
+    }
+
+    if (this.onDeleteCommentSubscription) {
+      this.onDeleteCommentSubscription.unsubscribe()
+      this.onDeleteCommentSubscription = null
+    }
   },
   methods: {
     addComment: async function(inputComment) {
@@ -128,7 +202,7 @@ export default {
         return
       }
 
-      const beforeIndex = this.getCommentIndex(elementId)
+      const beforeIndex = this.getSortedCommentIndex(elementId)
 
       const input = {
         id: comment.id,
@@ -142,7 +216,7 @@ export default {
 
       comment.likes = savedComment.likes
       comment.updatedAt = savedComment.updatedAt
-      const afterIndex = this.getCommentIndex(elementId)
+      const afterIndex = this.getSortedCommentIndex(elementId)
 
       if (beforeIndex > afterIndex) {
         this.scrollToId(comment.id)
@@ -150,7 +224,7 @@ export default {
       }
     },
     deleteComment: async function(elementId) {
-      const index = this.comments.findIndex(item => item.id === elementId)
+      const index = this.getCommentIndex(elementId)
       if (index < 0) {
         return
       }
@@ -180,6 +254,9 @@ export default {
       return comment
     },
     getCommentIndex: function(elementId) {
+      return this.comments.findIndex(item => item.id === elementId)
+    },
+    getSortedCommentIndex: function(elementId) {
       return this.sortedComments.findIndex(item => item.id === elementId)
     },
     pushUpdatedIds: function(elementId) {
@@ -189,6 +266,9 @@ export default {
     },
     isEventOwner: function(eventOwner) {
       return eventOwner === this.userName
+    },
+    isTargetEvent: function(eventId) {
+      return this.event.id === eventId
     },
   },
 }

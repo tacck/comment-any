@@ -46,6 +46,7 @@
 import { API, graphqlOperation } from 'aws-amplify'
 import { listEvents } from '@/graphql/queries'
 import { createEvent, updateEvent } from '@/graphql/mutations'
+import { onCreateEvent, onUpdateEvent } from '@/graphql/subscriptions'
 
 import moment from 'moment'
 
@@ -72,6 +73,8 @@ export default {
       newEventNameDialog: false,
       userName: '',
       events: [],
+      onCreateEventSubscription: null,
+      onUpdateEventSubscription: null,
     }
   },
   created: async function() {
@@ -81,6 +84,38 @@ export default {
       console.error('listEvents', err),
     )
     this.events = items.data.listEvents.items
+
+    this.onCreateEventSubscription = API.graphql(
+      graphqlOperation(onCreateEvent),
+    ).subscribe({
+      next: data => {
+        const savedEvent = data.value.data.onCreateEvent
+        this.events.push(savedEvent)
+      },
+    })
+
+    this.onUpdateEventSubscription = API.graphql(
+      graphqlOperation(onUpdateEvent),
+    ).subscribe({
+      next: data => {
+        const updatedEvent = data.value.data.onUpdateEvent
+        const targetEventIndex = this.events.findIndex(
+          item => item.id === updatedEvent.id,
+        )
+        this.events.splice(targetEventIndex, 1, updatedEvent)
+      },
+    })
+  },
+  beforeDestroy: function() {
+    if (this.onCreateEventSubscription) {
+      this.onCreateEventSubscription.unsubscribe()
+      this.onCreateEventSubscription = null
+    }
+
+    if (this.onUpdateEventSubscription) {
+      this.onUpdateEventSubscription.unsubscribe()
+      this.onUpdateEventSubscription = null
+    }
   },
   methods: {
     addEvent: async function() {
@@ -93,12 +128,9 @@ export default {
         active: true,
       }
 
-      const item = await API.graphql(
+      await API.graphql(
         graphqlOperation(createEvent, { input: input }),
       ).catch(err => console.error('createEvent', err))
-      const savedEvent = item.data.createEvent
-
-      this.events.push(savedEvent)
 
       this.newEventNameDialog = false
       this.newEventName = ''
@@ -116,12 +148,9 @@ export default {
         return
       }
 
-      const item = await API.graphql(
+      await API.graphql(
         graphqlOperation(updateEvent, { input: event }),
       ).catch(err => console.error('updateEvent', err))
-      const savedEvent = item.data.updateEvent
-
-      this.events.splice(index, 1, savedEvent)
     },
   },
 }
