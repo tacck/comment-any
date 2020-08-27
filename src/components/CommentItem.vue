@@ -4,18 +4,20 @@
       <div :class="commentClass()">
         <v-card-title>{{ comment.comment }}</v-card-title>
         <v-card-subtitle>{{ comment.updatedAt }}</v-card-subtitle>
-        <v-btn text @click="addLike(comment.id)"
+        <v-btn :disabled="!isActiveEvent" text @click="addLike(comment.id)"
           ><v-icon>mdi-thumb-up-outline</v-icon></v-btn
         >:
         <span>{{ comment.likes }}</span>
         <v-btn
           v-if="isEventOwner"
+          :disabled="!isActiveEvent"
+          :dark="isActiveEvent"
           absolute
           top
           right
           fab
           x-small
-          dark
+          elevation="0"
           color="error lighten-1"
           class="mt-6"
           @click="deleteComment(comment.id)"
@@ -34,6 +36,10 @@ export default {
       required: true,
     },
     isEventOwner: {
+      type: Boolean,
+      required: true,
+    },
+    isActiveEvent: {
       type: Boolean,
       required: true,
     },

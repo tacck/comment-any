@@ -1,23 +1,66 @@
 <template>
   <v-container>
-    <v-row>
-      <v-col cols="12"><PageTitle title="Login"></PageTitle></v-col>
-    </v-row>
-    <v-row>
-      <v-col cols="12">email</v-col>
-      <v-col cols="12">password</v-col>
+    <v-row justify="center">
+      <v-col cols="auto">
+        <amplify-authenticator>
+          <amplify-sign-up
+            slot="sign-up"
+            :form-fields.prop="formFields"
+          ></amplify-sign-up>
+          <amplify-sign-out></amplify-sign-out>
+        </amplify-authenticator>
+      </v-col>
     </v-row>
   </v-container>
 </template>
 
 <script>
-import PageTitle from '@/components/PageTitle'
+import { Auth, Hub } from 'aws-amplify'
 
 export default {
-  components: {
-    PageTitle,
+  data: function() {
+    return {
+      formFields: [
+        {
+          type: 'username',
+          label: 'Username',
+          placeholder: 'Username',
+          required: true,
+        },
+        {
+          type: 'password',
+          label: 'Password',
+          placeholder: 'Password',
+          required: true,
+        },
+        {
+          type: 'email',
+          label: 'Email Address',
+          placeholder: 'Email',
+          required: true,
+        },
+      ],
+    }
+  },
+  created: function() {
+    Hub.listen('auth', this.changeState)
+  },
+  beforeDestroy: function() {
+    Hub.remove('auth', this.changeState)
+  },
+  methods: {
+    changeState: async function(data) {
+      const user = await Auth.currentUserInfo()
+      switch (data.payload.event) {
+        case 'signIn':
+          this.$store.commit('setUser', user)
+          this.$router.push('/')
+          break
+        case 'signOut':
+          this.$store.commit('setUser', null)
+          break
+      }
+    },
   },
 }
 </script>
-
-<style></style>

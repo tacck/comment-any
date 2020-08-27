@@ -43,6 +43,11 @@
 </template>
 
 <script>
+import { API, graphqlOperation } from 'aws-amplify'
+import { listEvents } from '@/graphql/queries'
+import { createEvent, updateEvent } from '@/graphql/mutations'
+import { onCreateEvent, onUpdateEvent } from '@/graphql/subscriptions'
+
 import moment from 'moment'
 
 import PageTitle from '@/components/PageTitle'
@@ -66,47 +71,66 @@ export default {
     return {
       newEventName: '',
       newEventNameDialog: false,
-      userName: 'me',
-      events: [
-        {
-          id: '12345',
-          name: 'サンプルイベント',
-          active: true,
-          createdAt: '2020-06-23 15:20:00',
-          owner: 'me',
-        },
-        {
-          id: '67890',
-          name: '終了イベント',
-          active: false,
-          createdAt: '2020-06-21 15:00:00',
-          owner: 'me',
-        },
-        {
-          id: 'abcde',
-          name: 'Not owner',
-          active: true,
-          createdAt: '2020-06-22 14:00:00',
-          owner: 'someone',
-        },
-      ],
+      userName: '',
+      events: [],
+      onCreateEventSubscription: null,
+      onUpdateEventSubscription: null,
+    }
+  },
+  created: async function() {
+    this.userName = this.$store.state.user.username
+
+    const items = await API.graphql(graphqlOperation(listEvents)).catch(err =>
+      console.error('listEvents', err),
+    )
+    this.events = items.data.listEvents.items
+
+    this.onCreateEventSubscription = API.graphql(
+      graphqlOperation(onCreateEvent),
+    ).subscribe({
+      next: data => {
+        const savedEvent = data.value.data.onCreateEvent
+        this.events.push(savedEvent)
+      },
+    })
+
+    this.onUpdateEventSubscription = API.graphql(
+      graphqlOperation(onUpdateEvent),
+    ).subscribe({
+      next: data => {
+        const updatedEvent = data.value.data.onUpdateEvent
+        const targetEventIndex = this.events.findIndex(
+          item => item.id === updatedEvent.id,
+        )
+        this.events.splice(targetEventIndex, 1, updatedEvent)
+      },
+    })
+  },
+  beforeDestroy: function() {
+    if (this.onCreateEventSubscription) {
+      this.onCreateEventSubscription.unsubscribe()
+      this.onCreateEventSubscription = null
+    }
+
+    if (this.onUpdateEventSubscription) {
+      this.onUpdateEventSubscription.unsubscribe()
+      this.onUpdateEventSubscription = null
     }
   },
   methods: {
-    addEvent: function() {
-      const id =
-        'event-' +
-        Math.floor(Math.random() * 1000) +
-        '-' +
-        Math.floor(Math.random() * 1000)
+    addEvent: async function() {
+      if (!this.newEventName || this.newEventName.length <= 0) {
+        return
+      }
 
-      this.events.push({
-        id: id,
+      const input = {
         name: this.newEventName,
         active: true,
-        createdAt: moment().format('YYYY-MM-DD HH:mm:ss'),
-        owner: 'me',
-      })
+      }
+
+      await API.graphql(
+        graphqlOperation(createEvent, { input: input }),
+      ).catch(err => console.error('createEvent', err))
 
       this.newEventNameDialog = false
       this.newEventName = ''
@@ -118,12 +142,15 @@ export default {
     isEventOwner: function(eventOwner) {
       return eventOwner === this.userName
     },
-    activeSwitch: function(event) {
+    activeSwitch: async function(event) {
       const index = this.events.findIndex(item => item.id === event.id)
       if (index < 0) {
         return
       }
-      this.events[index].active = event.active
+
+      await API.graphql(
+        graphqlOperation(updateEvent, { input: event }),
+      ).catch(err => console.error('updateEvent', err))
     },
   },
 }
